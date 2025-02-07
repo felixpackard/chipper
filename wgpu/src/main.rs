@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use winit::{
     application::ApplicationHandler, dpi::LogicalSize, event_loop::EventLoop, window::Window,
 };
@@ -5,20 +7,44 @@ use winit::{
 const SCALE_FACTOR: u32 = 10;
 
 #[derive(Default)]
+struct AppConfig {
+    pub window: winit::window::WindowAttributes,
+}
+
+impl AppConfig {
+    pub fn new() -> Self {
+        Self {
+            window: Window::default_attributes()
+                .with_title("CHIP-8")
+                .with_inner_size(LogicalSize::new(
+                    chip8::SCREEN_WIDTH * SCALE_FACTOR,
+                    chip8::SCREEN_HEIGHT * SCALE_FACTOR,
+                )),
+        }
+    }
+}
+
+struct State {
+    pub(crate) window: Arc<Window>,
+}
+
+#[derive(Default)]
 struct App {
-    window: Option<winit::window::Window>,
+    state: Option<State>,
+}
+
+impl App {
+    pub fn init(&mut self, event_loop: &winit::event_loop::ActiveEventLoop, config: AppConfig) {
+        let window = event_loop.create_window(config.window).unwrap();
+        let window = Arc::new(window);
+        self.state = Some(State { window });
+    }
 }
 
 impl ApplicationHandler for App {
     fn resumed(&mut self, event_loop: &winit::event_loop::ActiveEventLoop) {
-        let attributes = Window::default_attributes()
-            .with_title("CHIP-8")
-            .with_inner_size(LogicalSize::new(
-                chip8::SCREEN_WIDTH * SCALE_FACTOR,
-                chip8::SCREEN_HEIGHT * SCALE_FACTOR,
-            ));
-
-        self.window = Some(event_loop.create_window(attributes).unwrap());
+        let config = AppConfig::new();
+        self.init(event_loop, config);
     }
 
     fn window_event(
@@ -43,6 +69,6 @@ fn main() {
     let event_loop = EventLoop::new().unwrap();
     event_loop.set_control_flow(winit::event_loop::ControlFlow::Poll);
 
-    let mut app = App::default();
-    event_loop.run_app(&mut app).unwrap();
+    let mut state = App::default();
+    event_loop.run_app(&mut state).unwrap();
 }
