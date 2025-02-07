@@ -13,8 +13,7 @@ impl Memory {
     }
 
     /// Write `data` into memory starting at `addr` and return the number of bytes written
-    pub fn write(&mut self, addr: u16, data: &[u8]) -> anyhow::Result<u16> {
-        let addr = addr as usize;
+    pub fn write(&mut self, addr: usize, data: &[u8]) -> anyhow::Result<u16> {
         ensure!(addr < self.data.len(), "write address out of bounds");
 
         let available = self.data.len() - addr;
