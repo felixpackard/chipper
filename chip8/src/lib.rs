@@ -1,9 +1,11 @@
+mod display;
 mod memory;
 
-use std::fmt::Display;
+use std::fmt::Display as FmtDisplay;
 
 use anyhow::Context;
 
+use crate::display::Display;
 use crate::memory::Memory;
 
 pub const FONT_DATA: [u8; 5 * 0x10] = [
@@ -30,11 +32,12 @@ pub const FONT_ADDR: usize = 0x050;
 pub const MEM_SIZE: usize = 0x1000;
 pub const ROM_ADDR: usize = 0x200;
 
-pub const SCREEN_WIDTH: u32 = 64;
-pub const SCREEN_HEIGHT: u32 = 32;
+pub const SCREEN_WIDTH: usize = 64;
+pub const SCREEN_HEIGHT: usize = 32;
 
 pub struct Chip8 {
     memory: Memory,
+    display: Display,
 }
 
 impl Chip8 {
@@ -44,11 +47,18 @@ impl Chip8 {
             .write(FONT_ADDR, &FONT_DATA)
             .context("write font into memory")?;
 
-        Ok(Chip8 { memory })
+        Ok(Chip8 {
+            memory,
+            display: Display::new(),
+        })
+    }
+
+    pub fn fb(&self) -> crate::display::FrameBuffer {
+        self.display.fb()
     }
 }
 
-impl Display for Chip8 {
+impl FmtDisplay for Chip8 {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "=== Memory ===\n{}", self.memory)
     }
