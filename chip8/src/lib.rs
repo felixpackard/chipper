@@ -30,6 +30,9 @@ pub const FONT_ADDR: usize = 0x050;
 pub const MEM_SIZE: usize = 0x1000;
 pub const ROM_ADDR: usize = 0x200;
 
+pub const SCREEN_WIDTH: u32 = 64;
+pub const SCREEN_HEIGHT: u32 = 32;
+
 pub struct Chip8 {
     memory: Memory,
 }
