@@ -3,6 +3,7 @@ mod memory;
 mod registers;
 
 use std::fmt::Display as FmtDisplay;
+use std::path::PathBuf;
 
 use anyhow::Context;
 
@@ -84,6 +85,12 @@ impl Chip8 {
             .write(ROM_ADDR, rom)
             .context("write rom into memory")?;
         self.pc = ROM_ADDR as u16;
+        Ok(())
+    }
+
+    pub fn load_rom_from_file(&mut self, path: PathBuf) -> anyhow::Result<()> {
+        let buf = std::fs::read(path).context("read rom file")?;
+        self.load_rom(&buf).context("load rom from file")?;
         Ok(())
     }
 

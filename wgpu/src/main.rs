@@ -1,6 +1,7 @@
-use std::sync::Arc;
+use std::{path::PathBuf, sync::Arc};
 
 use chip8::Chip8;
+use clap::{command, Parser};
 use pixels::{Pixels, SurfaceTexture};
 use winit::{
     application::ApplicationHandler, dpi::LogicalSize, event::WindowEvent, event_loop::EventLoop,
@@ -12,6 +13,7 @@ const SCALE_FACTOR: u32 = 10;
 #[derive(Default)]
 struct AppConfig {
     pub window: winit::window::WindowAttributes,
+    pub load: Option<PathBuf>,
 }
 
 impl AppConfig {
@@ -24,7 +26,13 @@ impl AppConfig {
                     (chip8::SCREEN_HEIGHT as u32) * SCALE_FACTOR,
                 ))
                 .with_resizable(false),
+            load: None,
         }
+    }
+
+    pub fn load(mut self, path: Option<PathBuf>) -> Self {
+        self.load = path;
+        self
     }
 }
 
@@ -34,16 +42,31 @@ struct State {
     pub(crate) pixels: Pixels<'static>,
 }
 
-#[derive(Default)]
 struct App {
+    config: AppConfig,
     state: Option<State>,
 }
 
 impl App {
-    pub fn init(&mut self, event_loop: &winit::event_loop::ActiveEventLoop, config: AppConfig) {
-        let chip8 = Chip8::new().unwrap();
+    pub fn new(config: AppConfig) -> Self {
+        Self {
+            config,
+            state: None,
+        }
+    }
 
-        let window = event_loop.create_window(config.window).unwrap();
+    pub fn init(&mut self, event_loop: &winit::event_loop::ActiveEventLoop) {
+        let mut chip8 = Chip8::new().unwrap();
+
+        if let Some(path) = self.config.load.to_owned() {
+            chip8.load_rom_from_file(path).unwrap();
+        }
+
+        println!("{}", chip8);
+
+        let window = event_loop
+            .create_window(self.config.window.to_owned())
+            .unwrap();
         let window = Arc::new(window);
 
         let window_size = window.inner_size();
@@ -69,8 +92,7 @@ impl App {
 
 impl ApplicationHandler for App {
     fn resumed(&mut self, event_loop: &winit::event_loop::ActiveEventLoop) {
-        let config = AppConfig::new();
-        self.init(event_loop, config);
+        self.init(event_loop);
     }
 
     fn window_event(
@@ -115,12 +137,23 @@ impl App {
     }
 }
 
+#[derive(Parser, Debug)]
+#[command(version, about, long_about = None)]
+struct Args {
+    #[arg(short, long, value_name = "PATH", help = "Load ROM into memory", value_hint = clap::ValueHint::FilePath)]
+    load: Option<PathBuf>,
+}
+
 fn main() {
     env_logger::init();
 
     let event_loop = EventLoop::new().unwrap();
     event_loop.set_control_flow(winit::event_loop::ControlFlow::Poll);
 
-    let mut state = App::default();
+    let args = Args::parse();
+    let config = AppConfig::new().load(args.load);
+
+    let mut state = App::new(config);
+
     event_loop.run_app(&mut state).unwrap();
 }
