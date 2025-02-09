@@ -4,6 +4,7 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
+anyhow = "1.0.95"
 chip8 = { path = "../chip8" }
 clap = { version = "4.5.28", features = ["derive"] }
 env_logger = "0.11.6"

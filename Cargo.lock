@@ -2214,6 +2214,7 @@ dependencies = [
 name = "wgpu"
 version = "0.1.0"
 dependencies = [
+ "anyhow",
  "chip8",
  "clap",
  "env_logger",

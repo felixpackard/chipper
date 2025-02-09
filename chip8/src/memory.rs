@@ -3,7 +3,7 @@ use std::fmt::Display;
 use anyhow::ensure;
 
 pub struct Memory {
-    data: [u8; crate::MEM_SIZE],
+    pub(crate) data: [u8; crate::MEM_SIZE],
 }
 
 impl Memory {

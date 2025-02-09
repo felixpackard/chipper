@@ -1,14 +1,20 @@
-use std::{path::PathBuf, sync::Arc};
+use std::{path::PathBuf, sync::Arc, time};
 
+use anyhow::Context;
 use chip8::Chip8;
 use clap::{command, Parser};
 use pixels::{Pixels, SurfaceTexture};
 use winit::{
-    application::ApplicationHandler, dpi::LogicalSize, event::WindowEvent, event_loop::EventLoop,
+    application::ApplicationHandler,
+    dpi::LogicalSize,
+    event::WindowEvent,
+    event_loop::{self, EventLoop},
+    platform::pump_events::{EventLoopExtPumpEvents, PumpStatus},
     window::Window,
 };
 
 const SCALE_FACTOR: u32 = 10;
+const FRAME_INTERVAL: time::Duration = time::Duration::new(0, 1_000_000_000u32 / 60);
 
 #[derive(Default)]
 struct AppConfig {
@@ -55,18 +61,20 @@ impl App {
         }
     }
 
-    pub fn init(&mut self, event_loop: &winit::event_loop::ActiveEventLoop) {
+    pub fn init(&mut self, event_loop: &event_loop::ActiveEventLoop) -> anyhow::Result<()> {
         let mut chip8 = Chip8::new().unwrap();
 
         if let Some(path) = self.config.load.to_owned() {
-            chip8.load_rom_from_file(path).unwrap();
+            chip8
+                .load_rom_from_file(path)
+                .context("load rom from file")?;
         }
 
         println!("{}", chip8);
 
         let window = event_loop
             .create_window(self.config.window.to_owned())
-            .unwrap();
+            .context("create window")?;
         let window = Arc::new(window);
 
         let window_size = window.inner_size();
@@ -78,7 +86,7 @@ impl App {
             chip8::SCREEN_HEIGHT as u32,
             surface_texture,
         )
-        .unwrap();
+        .context("create pixels instance")?;
 
         self.state = Some(State {
             chip8,
@@ -86,18 +94,24 @@ impl App {
             pixels,
         });
 
-        self.render();
+        App::render(self.state.as_mut().unwrap());
+        self.state.as_ref().unwrap().window.request_redraw();
+
+        Ok(())
     }
 }
 
 impl ApplicationHandler for App {
-    fn resumed(&mut self, event_loop: &winit::event_loop::ActiveEventLoop) {
-        self.init(event_loop);
+    fn resumed(&mut self, event_loop: &event_loop::ActiveEventLoop) {
+        if let Err(e) = self.init(event_loop) {
+            eprintln!("init failed: {:?}", e);
+            std::process::exit(1);
+        }
     }
 
     fn window_event(
         &mut self,
-        event_loop: &winit::event_loop::ActiveEventLoop,
+        event_loop: &event_loop::ActiveEventLoop,
         _window_id: winit::window::WindowId,
         event: winit::event::WindowEvent,
     ) {
@@ -107,7 +121,12 @@ impl ApplicationHandler for App {
                 event_loop.exit();
             }
             WindowEvent::RedrawRequested => {
-                self.render();
+                let Some(state) = self.state.as_mut() else {
+                    return;
+                };
+
+                state.window.pre_present_notify();
+                App::render(state);
             }
             _ => (),
         }
@@ -115,25 +134,22 @@ impl ApplicationHandler for App {
 }
 
 impl App {
-    pub fn render(&mut self) {
-        if let Some(state) = &mut self.state {
-            let fb = state.chip8.fb();
-            for (i, pixel) in state.pixels.frame_mut().chunks_exact_mut(4).enumerate() {
-                let byte = fb[i / 8];
-                let bit = i % 8;
-                let on = (byte & (1 << (7 - bit))) != 0;
+    pub fn render(state: &mut State) {
+        let fb = state.chip8.fb();
+        for (i, pixel) in state.pixels.frame_mut().chunks_exact_mut(4).enumerate() {
+            let x = i % chip8::SCREEN_WIDTH;
+            let y = i / chip8::SCREEN_WIDTH;
 
-                let rgba = if on {
-                    [255, 255, 255, 255]
-                } else {
-                    [0, 0, 0, 255]
-                };
+            let rgba = if fb[y][x] == 1 {
+                [255, 255, 255, 255]
+            } else {
+                [0, 0, 0, 255]
+            };
 
-                pixel.copy_from_slice(&rgba);
-            }
-
-            state.pixels.render().unwrap();
+            pixel.copy_from_slice(&rgba);
         }
+
+        state.pixels.render().unwrap();
     }
 }
 
@@ -144,16 +160,31 @@ struct Args {
     load: Option<PathBuf>,
 }
 
-fn main() {
+fn main() -> std::process::ExitCode {
     env_logger::init();
 
-    let event_loop = EventLoop::new().unwrap();
-    event_loop.set_control_flow(winit::event_loop::ControlFlow::Poll);
+    let mut event_loop = EventLoop::new().unwrap();
 
     let args = Args::parse();
     let config = AppConfig::new().load(args.load);
 
-    let mut state = App::new(config);
+    let mut app = App::new(config);
 
-    event_loop.run_app(&mut state).unwrap();
+    loop {
+        let timeout = Some(time::Duration::ZERO);
+        let status = event_loop.pump_app_events(timeout, &mut app);
+
+        if let PumpStatus::Exit(exit_code) = status {
+            break std::process::ExitCode::from(exit_code as u8);
+        }
+
+        if let Some(state) = app.state.as_mut() {
+            state.chip8.cycle();
+            if state.chip8.is_fb_dirty() {
+                state.window.clone().request_redraw();
+            }
+        }
+
+        std::thread::sleep(FRAME_INTERVAL);
+    }
 }
