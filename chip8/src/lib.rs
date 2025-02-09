@@ -49,12 +49,14 @@ struct Opcode {
 
 struct Chip8Config {
     legacy_shift: bool,
+    jump_add_offset: bool,
 }
 
 impl Chip8Config {
     pub fn new() -> Self {
         Self {
             legacy_shift: false,
+            jump_add_offset: false,
         }
     }
 }
@@ -104,6 +106,11 @@ impl Chip8 {
 
     pub fn legacy_shift(mut self, value: bool) -> Self {
         self.config.legacy_shift = value;
+        self
+    }
+
+    pub fn jump_add_offset(mut self, value: bool) -> Self {
+        self.config.jump_add_offset = value;
         self
     }
 
@@ -193,6 +200,7 @@ impl Chip8 {
             },
             0x9 => self.op_skip_reg_ne(opcode.x, opcode.y),
             0xA => self.op_set_index(opcode.nnn),
+            0xB => self.op_jump_with_offset(opcode.nnn, opcode.x),
             0xD => self.op_display(opcode.x, opcode.y, opcode.n),
             _ => todo!(),
         }
@@ -354,8 +362,18 @@ impl Chip8 {
 
     /// 0xANNN
     fn op_set_index(&mut self, nnn: u16) {
-        println!("op_set_index(0xANNN) {:#04x}", nnn);
+        println!("op_set_index(ANNN) {:#04x}", nnn);
         self.i = nnn;
+    }
+
+    /// 0xBNNN
+    fn op_jump_with_offset(&mut self, nnn: u16, x: u8) {
+        println!("op_jump_with_offset(BNNN) {:#04x}", nnn);
+        self.pc = if self.config.jump_add_offset {
+            nnn + self.v[x as usize] as u16
+        } else {
+            nnn
+        };
     }
 
     /// 0xDXYN
@@ -652,6 +670,21 @@ mod tests {
         chip8.load_rom(&[0xA2, 0x22]).unwrap();
         chip8.cycle();
         assert_eq!(chip8.i, 0x222);
+    }
+
+    #[test]
+    fn test_op_jump_with_offset() {
+        let mut chip8 = Chip8::new().unwrap();
+        chip8.load_rom(&[0xB3, 0x00]).unwrap();
+
+        chip8.cycle();
+        assert_eq!(chip8.pc, 0x300);
+
+        chip8 = chip8.jump_add_offset(true);
+        chip8.pc = 0x200;
+        chip8.v[3] = 0x10;
+        chip8.cycle();
+        assert_eq!(chip8.pc, 0x300 + 0x10);
     }
 
     #[test]

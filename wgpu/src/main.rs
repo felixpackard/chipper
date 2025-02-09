@@ -58,7 +58,8 @@ impl App {
     pub fn init(&mut self, event_loop: &event_loop::ActiveEventLoop) -> anyhow::Result<()> {
         let mut chip8 = Chip8::new()
             .context("construct new chip8 instance")?
-            .legacy_shift(self.config.args.legacy_shift);
+            .legacy_shift(self.config.args.legacy_shift)
+            .jump_add_offset(self.config.args.jump_add_offset);
 
         if let Some(path) = self.config.args.load.to_owned() {
             chip8
@@ -154,8 +155,10 @@ impl App {
 struct Args {
     #[arg(short, long, value_name = "PATH", help = "Load ROM into memory", value_hint = clap::ValueHint::FilePath)]
     load: Option<PathBuf>,
-    #[arg(short, long, help = "Toggle shift operation modes")]
+    #[arg(long, help = "Toggle shift operation modes")]
     legacy_shift: bool,
+    #[arg(long, help = "Toggle jump operation modes")]
+    jump_add_offset: bool,
 }
 
 fn main() -> std::process::ExitCode {
