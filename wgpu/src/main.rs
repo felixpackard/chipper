@@ -16,14 +16,13 @@ use winit::{
 const SCALE_FACTOR: u32 = 10;
 const FRAME_INTERVAL: time::Duration = time::Duration::new(0, 1_000_000_000u32 / 60);
 
-#[derive(Default)]
 struct AppConfig {
     pub window: winit::window::WindowAttributes,
-    pub load: Option<PathBuf>,
+    pub args: Args,
 }
 
 impl AppConfig {
-    pub fn new() -> Self {
+    pub fn new(args: Args) -> Self {
         Self {
             window: Window::default_attributes()
                 .with_title("CHIP-8")
@@ -32,13 +31,8 @@ impl AppConfig {
                     (chip8::SCREEN_HEIGHT as u32) * SCALE_FACTOR,
                 ))
                 .with_resizable(false),
-            load: None,
+            args,
         }
-    }
-
-    pub fn load(mut self, path: Option<PathBuf>) -> Self {
-        self.load = path;
-        self
     }
 }
 
@@ -62,9 +56,11 @@ impl App {
     }
 
     pub fn init(&mut self, event_loop: &event_loop::ActiveEventLoop) -> anyhow::Result<()> {
-        let mut chip8 = Chip8::new().unwrap();
+        let mut chip8 = Chip8::new()
+            .context("construct new chip8 instance")?
+            .legacy_shift(self.config.args.legacy_shift);
 
-        if let Some(path) = self.config.load.to_owned() {
+        if let Some(path) = self.config.args.load.to_owned() {
             chip8
                 .load_rom_from_file(path)
                 .context("load rom from file")?;
@@ -158,6 +154,8 @@ impl App {
 struct Args {
     #[arg(short, long, value_name = "PATH", help = "Load ROM into memory", value_hint = clap::ValueHint::FilePath)]
     load: Option<PathBuf>,
+    #[arg(short, long, help = "Toggle shift operation modes")]
+    legacy_shift: bool,
 }
 
 fn main() -> std::process::ExitCode {
@@ -166,7 +164,7 @@ fn main() -> std::process::ExitCode {
     let mut event_loop = EventLoop::new().unwrap();
 
     let args = Args::parse();
-    let config = AppConfig::new().load(args.load);
+    let config = AppConfig::new(args);
 
     let mut app = App::new(config);
 

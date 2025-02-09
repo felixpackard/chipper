@@ -47,7 +47,20 @@ struct Opcode {
     nnn: u16,
 }
 
+struct Chip8Config {
+    legacy_shift: bool,
+}
+
+impl Chip8Config {
+    pub fn new() -> Self {
+        Self {
+            legacy_shift: false,
+        }
+    }
+}
+
 pub struct Chip8 {
+    config: Chip8Config,
     /// Heap-allocated RAM that stores font data, ROMs, and is fully writeable
     memory: Memory,
     /// A bit-packed frame buffer containing binary pixel states
@@ -76,6 +89,7 @@ impl Chip8 {
             .context("write font into memory")?;
 
         Ok(Chip8 {
+            config: Chip8Config::new(),
             memory,
             display: Display::new(),
             stack: [0; STACK_SIZE],
@@ -86,6 +100,11 @@ impl Chip8 {
             dt: 0,
             st: 0,
         })
+    }
+
+    pub fn legacy_shift(mut self, value: bool) -> Self {
+        self.config.legacy_shift = value;
+        self
     }
 
     pub fn load_rom(&mut self, rom: &[u8]) -> anyhow::Result<()> {
@@ -160,6 +179,18 @@ impl Chip8 {
             0x5 => self.op_skip_reg_eq(opcode.x, opcode.y),
             0x6 => self.op_set(opcode.x, opcode.nn),
             0x7 => self.op_add(opcode.x, opcode.nn),
+            0x8 => match (opcode.x, opcode.y, opcode.n) {
+                (_, _, 0) => self.op_reg_set(opcode.x, opcode.y),
+                (_, _, 1) => self.op_reg_or(opcode.x, opcode.y),
+                (_, _, 2) => self.op_reg_and(opcode.x, opcode.y),
+                (_, _, 3) => self.op_reg_xor(opcode.x, opcode.y),
+                (_, _, 4) => self.op_reg_add(opcode.x, opcode.y),
+                (_, _, 5) => self.op_reg_sub_right(opcode.x, opcode.y),
+                (_, _, 6) => self.op_reg_shift_right(opcode.x, opcode.y),
+                (_, _, 7) => self.op_reg_sub_left(opcode.x, opcode.y),
+                (_, _, 0xE) => self.op_reg_shift_left(opcode.x, opcode.y),
+                _ => todo!(),
+            },
             0x9 => self.op_skip_reg_ne(opcode.x, opcode.y),
             0xA => self.op_set_index(opcode.nnn),
             0xD => self.op_display(opcode.x, opcode.y, opcode.n),
@@ -191,7 +222,7 @@ impl Chip8 {
 
     /// 0x2NNN
     fn op_sub_call(&mut self, nnn: u16) {
-        println!("op_sub_call(2NNN)");
+        println!("op_sub_call(2NNN) {:#04x}", nnn);
         self.stack[self.sp as usize] = self.pc;
         self.sp += 1;
         self.pc = nnn;
@@ -199,7 +230,7 @@ impl Chip8 {
 
     /// 0x3XNN
     fn op_skip_eq(&mut self, x: u8, nn: u8) {
-        println!("op_jump_eq(3XNN)");
+        println!("op_jump_eq(3XNN) {:#02x} {:#02x}", x, nn);
         if self.v[x as usize] == nn {
             self.pc += 2;
         }
@@ -207,7 +238,7 @@ impl Chip8 {
 
     /// 0x4XNN
     fn op_skip_ne(&mut self, x: u8, nn: u8) {
-        println!("op_skip_ne(0x4XNN)");
+        println!("op_skip_ne(0x4XNN) {:#02x} {:#02x}", x, nn);
         if self.v[x as usize] != nn {
             self.pc += 2;
         }
@@ -215,7 +246,7 @@ impl Chip8 {
 
     /// 0x5XY0
     fn op_skip_reg_eq(&mut self, x: u8, y: u8) {
-        println!("op_skip_reg_eq(5XY0)");
+        println!("op_skip_reg_eq(5XY0) {:#02x} {:#02x}", x, y);
         if self.v[x as usize] == self.v[y as usize] {
             self.pc += 2;
         }
@@ -233,9 +264,89 @@ impl Chip8 {
         self.v[x as usize] = self.v[x as usize].saturating_add(nn);
     }
 
+    /// 0x8XY0
+    fn op_reg_set(&mut self, x: u8, y: u8) {
+        println!("op_reg_set(8XY0) {:#02x} {:#02x}", x, y);
+        self.v[x as usize] = self.v[y as usize];
+    }
+
+    /// 0x8XY1
+    fn op_reg_or(&mut self, x: u8, y: u8) {
+        println!("op_reg_or(8XY1) {:#02x} {:#02x}", x, y);
+        self.v[x as usize] |= self.v[y as usize];
+    }
+
+    /// 0x8XY2
+    fn op_reg_and(&mut self, x: u8, y: u8) {
+        println!("op_reg_and(8XY2) {:#02x} {:#02x}", x, y);
+        self.v[x as usize] &= self.v[y as usize];
+    }
+
+    /// 0x8XY3
+    fn op_reg_xor(&mut self, x: u8, y: u8) {
+        println!("op_reg_xor(8XY3) {:#02x} {:#02x}", x, y);
+        self.v[x as usize] ^= self.v[y as usize];
+    }
+
+    /// 0x8XY4
+    fn op_reg_add(&mut self, x: u8, y: u8) {
+        println!("op_reg_add(8XY4) {:#02x} {:#02x}", x, y);
+        if let Some(sum) = self.v[x as usize].checked_add(self.v[y as usize]) {
+            self.v[x as usize] = sum;
+            self.v[0xF] = 0;
+        } else {
+            self.v[x as usize] = u8::MAX;
+            self.v[0xF] = 1;
+        }
+    }
+
+    /// 0x8XY5
+    fn op_reg_sub_right(&mut self, x: u8, y: u8) {
+        println!("op_reg_sub_right(8XY5) {:#02x} {:#02x}", x, y);
+        self.v[0xF] = if self.v[x as usize] > self.v[y as usize] {
+            1
+        } else {
+            0
+        };
+        self.v[x as usize] = self.v[x as usize].saturating_sub(self.v[y as usize]);
+    }
+
+    /// 0x8XY6
+    fn op_reg_shift_right(&mut self, x: u8, y: u8) {
+        println!("op_reg_shift_right(8XY6) {:#02} {:#02}", x, y);
+        if self.config.legacy_shift {
+            self.v[x as usize] = self.v[y as usize];
+        }
+        self.v[0xF] = self.v[x as usize] & 0x1;
+        self.v[x as usize] >>= 1;
+    }
+
+    /// 0x8XY7
+    fn op_reg_sub_left(&mut self, x: u8, y: u8) {
+        println!("op_reg_sub_left(8XY7) {:#02x} {:#02x}", x, y);
+        self.v[0xF] = if self.v[y as usize] > self.v[x as usize] {
+            println!("ret 1");
+            1
+        } else {
+            println!("ret 0");
+            0
+        };
+        self.v[x as usize] = self.v[y as usize].saturating_sub(self.v[x as usize]);
+    }
+
+    /// 0x8XYE
+    fn op_reg_shift_left(&mut self, x: u8, y: u8) {
+        println!("op_reg_shift_left(8XYE) {:#02} {:#02}", x, y);
+        if self.config.legacy_shift {
+            self.v[x as usize] = self.v[y as usize];
+        }
+        self.v[0xF] = self.v[x as usize] >> 7 & 0x1;
+        self.v[x as usize] <<= 1;
+    }
+
     /// 0x9XY0
     fn op_skip_reg_ne(&mut self, x: u8, y: u8) {
-        println!("op_skip_reg_ne(9XY0)");
+        println!("op_skip_reg_ne(9XY0) {:#02x} {:#02x}", x, y);
         if self.v[x as usize] != self.v[y as usize] {
             self.pc += 2;
         }
@@ -384,6 +495,141 @@ mod tests {
         chip8.v[0] = 16;
         chip8.cycle();
         assert_eq!(chip8.v[0], 32);
+    }
+
+    #[test]
+    fn test_op_reg_set() {
+        let mut chip8 = Chip8::new().unwrap();
+        chip8.load_rom(&[0x80, 0x10]).unwrap();
+        chip8.v[0] = 10;
+        chip8.v[1] = 20;
+        chip8.cycle();
+        assert_eq!(chip8.v[0], 20);
+    }
+
+    #[test]
+    fn test_op_reg_or() {
+        let mut chip8 = Chip8::new().unwrap();
+        chip8.load_rom(&[0x80, 0x11]).unwrap();
+        chip8.v[0] = 0b10010000;
+        chip8.v[1] = 0b11000001;
+        chip8.cycle();
+        assert_eq!(chip8.v[0], 0b11010001);
+    }
+
+    #[test]
+    fn test_op_reg_and() {
+        let mut chip8 = Chip8::new().unwrap();
+        chip8.load_rom(&[0x80, 0x12]).unwrap();
+        chip8.v[0] = 0b10010001;
+        chip8.v[1] = 0b11000001;
+        chip8.cycle();
+        assert_eq!(chip8.v[0], 0b10000001);
+    }
+
+    #[test]
+    fn test_op_reg_xor() {
+        let mut chip8 = Chip8::new().unwrap();
+        chip8.load_rom(&[0x80, 0x13]).unwrap();
+        chip8.v[0] = 0b10010001;
+        chip8.v[1] = 0b11000001;
+        chip8.cycle();
+        assert_eq!(chip8.v[0], 0b01010000);
+    }
+
+    #[test]
+    fn test_op_reg_add() {
+        let mut chip8 = Chip8::new().unwrap();
+        chip8.load_rom(&[0x80, 0x14]).unwrap();
+
+        chip8.v[0] = 200;
+        chip8.v[1] = 100;
+        chip8.cycle();
+        assert_eq!(chip8.v[0], u8::MAX);
+        assert_eq!(chip8.v[0xF], 1);
+
+        chip8.pc = 0x200;
+        chip8.v[0] = 10;
+        chip8.v[1] = 20;
+        chip8.cycle();
+        assert_eq!(chip8.v[0], 30);
+        assert_eq!(chip8.v[0xF], 0);
+    }
+
+    #[test]
+    fn test_op_reg_sub_right() {
+        let mut chip8 = Chip8::new().unwrap();
+        chip8.load_rom(&[0x80, 0x15]).unwrap();
+
+        chip8.v[0] = 100;
+        chip8.v[1] = 25;
+        chip8.cycle();
+        assert_eq!(chip8.v[0], 75);
+        assert_eq!(chip8.v[0xF], 1);
+
+        chip8.pc = 0x200;
+        chip8.v[0] = 25;
+        chip8.v[1] = 100;
+        chip8.cycle();
+        assert_eq!(chip8.v[0], u8::MIN);
+        assert_eq!(chip8.v[0xF], 0);
+    }
+
+    #[test]
+    fn test_op_reg_shift_right() {
+        let mut chip8 = Chip8::new().unwrap();
+        chip8.load_rom(&[0x80, 0x16]).unwrap();
+
+        chip8.v[0] = 0b00000100;
+        chip8.cycle();
+        assert_eq!(chip8.v[0], 0b00000010);
+        assert_eq!(chip8.v[0xF], 0);
+
+        chip8 = chip8.legacy_shift(true);
+        chip8.pc = 0x200;
+        chip8.v[0] = 0b0;
+        chip8.v[1] = 0b00000101;
+        chip8.cycle();
+        assert_eq!(chip8.v[0], 0b00000010);
+        assert_eq!(chip8.v[0xF], 1);
+    }
+
+    #[test]
+    fn test_op_reg_sub_left() {
+        let mut chip8 = Chip8::new().unwrap();
+        chip8.load_rom(&[0x80, 0x17]).unwrap();
+
+        chip8.v[0] = 25;
+        chip8.v[1] = 100;
+        chip8.cycle();
+        assert_eq!(chip8.v[0], 75);
+        assert_eq!(chip8.v[0xF], 1);
+
+        chip8.pc = 0x200;
+        chip8.v[0] = 100;
+        chip8.v[1] = 25;
+        chip8.cycle();
+        assert_eq!(chip8.v[0], u8::MIN);
+        assert_eq!(chip8.v[0xF], 0);
+    }
+
+    #[test]
+    fn test_op_reg_shift_left() {
+        let mut chip8 = Chip8::new().unwrap();
+        chip8.load_rom(&[0x80, 0x1E]).unwrap();
+
+        chip8.v[0] = 0b00100000;
+        chip8.cycle();
+        assert_eq!(chip8.v[0], 0b01000000);
+        assert_eq!(chip8.v[0xF], 0);
+
+        chip8 = chip8.legacy_shift(true);
+        chip8.pc = 0x200;
+        chip8.v[0] = 0b0;
+        chip8.v[1] = 0b10100000;
+        chip8.cycle();
+        assert_eq!(chip8.v[0], 0b01000000);
+        assert_eq!(chip8.v[0xF], 1);
     }
 
     #[test]
