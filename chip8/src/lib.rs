@@ -53,7 +53,7 @@ pub struct Chip8 {
     /// A bit-packed frame buffer containing binary pixel states
     display: Display,
     /// A stack for 16-bit addresses, which is used to call subroutines/functions and return from them
-    stack: [u8; STACK_SIZE],
+    stack: [u16; STACK_SIZE],
     /// A pointer to the current stack address in use
     sp: u8,
     /// 16 8-bit general-purpose variable registers numbered 0 through F hexadecimal
@@ -150,9 +150,11 @@ impl Chip8 {
         match opcode.c {
             0x0 => match (opcode.x, opcode.y, opcode.n) {
                 (0, 0xE, 0) => self.op_cls(),
+                (0, 0xE, 0xE) => self.op_sub_return(),
                 _ => todo!(),
             },
             0x1 => self.op_jump(opcode.nnn),
+            0x2 => self.op_sub_call(opcode.nnn),
             0x6 => self.op_set(opcode.x, opcode.nn),
             0x7 => self.op_add(opcode.x, opcode.nn),
             0xA => self.op_set_index(opcode.nnn),
@@ -163,31 +165,53 @@ impl Chip8 {
 
     /* Operations */
 
+    /// 0x00E0
     fn op_cls(&mut self) {
         println!("op_cls(00E0)");
         self.display.clear();
     }
 
+    /// 0x00EE
+    fn op_sub_return(&mut self) {
+        println!("op_sub_return(00EE)");
+        assert!(self.sp > 0);
+        self.sp -= 1;
+        self.pc = self.stack[self.sp as usize];
+    }
+
+    /// 0x1NNN
     fn op_jump(&mut self, nnn: u16) {
         println!("op_jump(1NNN) {:#04x}", nnn);
         self.pc = nnn;
     }
 
+    /// 0x2NNN
+    fn op_sub_call(&mut self, nnn: u16) {
+        println!("op_sub_call(2NNN)");
+        self.stack[self.sp as usize] = self.pc;
+        self.sp += 1;
+        self.pc = nnn;
+    }
+
+    /// 0x6XNN
     fn op_set(&mut self, x: u8, nn: u8) {
         println!("op_set(6XNN) {:#02x} {:#02x}", x, nn);
         self.v[x as usize] = nn;
     }
 
+    /// 0x7XNN
     fn op_add(&mut self, x: u8, nn: u8) {
         println!("op_add(7XNN) {:#02x} {:#02x}", x, nn);
         self.v[x as usize] = self.v[x as usize].saturating_add(nn);
     }
 
+    /// 0xANNN
     fn op_set_index(&mut self, nnn: u16) {
         println!("op_set_index(0xANNN) {:#04x}", nnn);
         self.i = nnn;
     }
 
+    /// 0xDXYN
     fn op_display(&mut self, x: u8, y: u8, n: u8) {
         println!("op_display(DXYN) {:#02x} {:#02x} {:#02x}", x, y, n);
         let vx = self.v[x as usize] as usize % SCREEN_WIDTH;
@@ -238,11 +262,33 @@ mod tests {
     }
 
     #[test]
+    fn test_op_sub_return() {
+        let mut chip8 = Chip8::new().unwrap();
+        chip8.load_rom(&[0x00, 0x00, 0x00, 0xEE]).unwrap();
+        chip8.pc += 2;
+        chip8.stack[0] = 0x200;
+        chip8.sp += 1;
+        chip8.cycle();
+        assert_eq!(chip8.pc, 0x200);
+    }
+
+    #[test]
     fn test_op_jump() {
         let mut chip8 = Chip8::new().unwrap();
         chip8.load_rom(&[0x11, 0x2C]).unwrap();
         chip8.cycle();
         assert_eq!(chip8.pc, 300);
+    }
+
+    #[test]
+    fn test_op_sub_call() {
+        let mut chip8 = Chip8::new().unwrap();
+        chip8.load_rom(&[0x00, 0x00, 0x22, 0x00]).unwrap();
+        chip8.pc += 2;
+        chip8.cycle();
+        assert_eq!(chip8.pc, 0x200);
+        assert_eq!(chip8.stack[0], 0x204);
+        assert_eq!(chip8.sp, 1);
     }
 
     #[test]
