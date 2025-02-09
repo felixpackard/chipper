@@ -155,8 +155,12 @@ impl Chip8 {
             },
             0x1 => self.op_jump(opcode.nnn),
             0x2 => self.op_sub_call(opcode.nnn),
+            0x3 => self.op_skip_eq(opcode.x, opcode.nn),
+            0x4 => self.op_skip_ne(opcode.x, opcode.nn),
+            0x5 => self.op_skip_reg_eq(opcode.x, opcode.y),
             0x6 => self.op_set(opcode.x, opcode.nn),
             0x7 => self.op_add(opcode.x, opcode.nn),
+            0x9 => self.op_skip_reg_ne(opcode.x, opcode.y),
             0xA => self.op_set_index(opcode.nnn),
             0xD => self.op_display(opcode.x, opcode.y, opcode.n),
             _ => todo!(),
@@ -193,6 +197,30 @@ impl Chip8 {
         self.pc = nnn;
     }
 
+    /// 0x3XNN
+    fn op_skip_eq(&mut self, x: u8, nn: u8) {
+        println!("op_jump_eq(3XNN)");
+        if self.v[x as usize] == nn {
+            self.pc += 2;
+        }
+    }
+
+    /// 0x4XNN
+    fn op_skip_ne(&mut self, x: u8, nn: u8) {
+        println!("op_skip_ne(0x4XNN)");
+        if self.v[x as usize] != nn {
+            self.pc += 2;
+        }
+    }
+
+    /// 0x5XY0
+    fn op_skip_reg_eq(&mut self, x: u8, y: u8) {
+        println!("op_skip_reg_eq(5XY0)");
+        if self.v[x as usize] == self.v[y as usize] {
+            self.pc += 2;
+        }
+    }
+
     /// 0x6XNN
     fn op_set(&mut self, x: u8, nn: u8) {
         println!("op_set(6XNN) {:#02x} {:#02x}", x, nn);
@@ -203,6 +231,14 @@ impl Chip8 {
     fn op_add(&mut self, x: u8, nn: u8) {
         println!("op_add(7XNN) {:#02x} {:#02x}", x, nn);
         self.v[x as usize] = self.v[x as usize].saturating_add(nn);
+    }
+
+    /// 0x9XY0
+    fn op_skip_reg_ne(&mut self, x: u8, y: u8) {
+        println!("op_skip_reg_ne(9XY0)");
+        if self.v[x as usize] != self.v[y as usize] {
+            self.pc += 2;
+        }
     }
 
     /// 0xANNN
@@ -292,6 +328,48 @@ mod tests {
     }
 
     #[test]
+    fn test_op_skip_eq() {
+        let mut chip8 = Chip8::new().unwrap();
+        chip8.load_rom(&[0x30, 0x10]).unwrap();
+
+        chip8.cycle();
+        assert_eq!(chip8.pc, 0x202);
+
+        chip8.pc = 0x200;
+        chip8.v[0] = 0x10;
+        chip8.cycle();
+        assert_eq!(chip8.pc, 0x204);
+    }
+
+    #[test]
+    fn test_op_skip_ne() {
+        let mut chip8 = Chip8::new().unwrap();
+        chip8.load_rom(&[0x40, 0x10]).unwrap();
+
+        chip8.cycle();
+        assert_eq!(chip8.pc, 0x204);
+
+        chip8.pc = 0x200;
+        chip8.v[0] = 0x10;
+        chip8.cycle();
+        assert_eq!(chip8.pc, 0x202);
+    }
+
+    #[test]
+    fn test_op_skip_reg_eq() {
+        let mut chip8 = Chip8::new().unwrap();
+        chip8.load_rom(&[0x50, 0x10]).unwrap();
+
+        chip8.cycle();
+        assert_eq!(chip8.pc, 0x204);
+
+        chip8.pc = 0x200;
+        chip8.v[1] = 0x10;
+        chip8.cycle();
+        assert_eq!(chip8.pc, 0x202);
+    }
+
+    #[test]
     fn test_op_set() {
         let mut chip8 = Chip8::new().unwrap();
         chip8.load_rom(&[0x60, 0xAA]).unwrap();
@@ -306,6 +384,20 @@ mod tests {
         chip8.v[0] = 16;
         chip8.cycle();
         assert_eq!(chip8.v[0], 32);
+    }
+
+    #[test]
+    fn test_op_skip_reg_ne() {
+        let mut chip8 = Chip8::new().unwrap();
+        chip8.load_rom(&[0x90, 0x10]).unwrap();
+
+        chip8.cycle();
+        assert_eq!(chip8.pc, 0x202);
+
+        chip8.pc = 0x200;
+        chip8.v[1] = 0x10;
+        chip8.cycle();
+        assert_eq!(chip8.pc, 0x204);
     }
 
     #[test]
