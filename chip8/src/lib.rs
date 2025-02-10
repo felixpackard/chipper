@@ -12,7 +12,9 @@ use crate::display::Display;
 use crate::keypad::Keypad;
 use crate::memory::Memory;
 
-pub const FONT_DATA: [u8; 5 * 0x10] = [
+pub const FONT_CHAR_LENGTH: usize = 5;
+
+pub const FONT_DATA: [u8; FONT_CHAR_LENGTH * 0x10] = [
     0xF0, 0x90, 0x90, 0x90, 0xF0, // 0
     0x20, 0x60, 0x20, 0x20, 0x70, // 1
     0xF0, 0x10, 0xF0, 0x80, 0xF0, // 2
@@ -228,6 +230,7 @@ impl Chip8 {
                 0x15 => self.op_dt_set(opcode.x),
                 0x18 => self.op_st_set(opcode.x),
                 0x1E => self.op_add_to_index(opcode.x),
+                0x29 => self.op_font_character(opcode.x),
                 _ => todo!(),
             },
             _ => todo!(),
@@ -491,6 +494,12 @@ impl Chip8 {
         println!("op_add_to_index(FX1E) {:#02x}", x);
         self.i = self.i.saturating_add(self.v[x as usize] as u16);
     }
+
+    /// 0xFX29
+    fn op_font_character(&mut self, x: u8) {
+        println!("op_font_character(FX29) {:#02x}", x);
+        self.i = (FONT_ADDR + FONT_CHAR_LENGTH * self.v[x as usize] as usize) as u16;
+    }
 }
 
 impl FmtDisplay for Chip8 {
@@ -501,7 +510,7 @@ impl FmtDisplay for Chip8 {
 
 #[cfg(test)]
 mod tests {
-    use super::{Chip8, SCREEN_HEIGHT, SCREEN_WIDTH};
+    use super::{Chip8, FONT_CHAR_LENGTH, FONT_DATA, SCREEN_HEIGHT, SCREEN_WIDTH};
 
     #[test]
     fn test_op_cls() {
@@ -885,5 +894,26 @@ mod tests {
         chip8.v[0] = 0x10;
         chip8.cycle();
         assert_eq!(chip8.i, 0x20);
+    }
+
+    #[test]
+    fn test_op_font_character() {
+        let mut chip8 = Chip8::new().unwrap();
+        chip8.load_rom(&[0xF0, 0x29]).unwrap();
+
+        chip8.v[0] = 0;
+        chip8.cycle();
+        assert_eq!(
+            chip8.memory.data[chip8.i as usize..chip8.i as usize + FONT_CHAR_LENGTH],
+            FONT_DATA[0..0 + FONT_CHAR_LENGTH]
+        );
+
+        chip8.pc = 0x200;
+        chip8.v[0] = 0xF;
+        chip8.cycle();
+        assert_eq!(
+            chip8.memory.data[chip8.i as usize..chip8.i as usize + FONT_CHAR_LENGTH],
+            FONT_DATA[0xF * FONT_CHAR_LENGTH..0xF * FONT_CHAR_LENGTH + FONT_CHAR_LENGTH]
+        );
     }
 }
