@@ -55,6 +55,7 @@ struct Opcode {
 struct Chip8Config {
     legacy_shift: bool,
     jump_add_offset: bool,
+    memory_increment_i: bool,
 }
 
 impl Chip8Config {
@@ -62,6 +63,7 @@ impl Chip8Config {
         Self {
             legacy_shift: false,
             jump_add_offset: false,
+            memory_increment_i: false,
         }
     }
 }
@@ -119,6 +121,11 @@ impl Chip8 {
 
     pub fn jump_add_offset(mut self, value: bool) -> Self {
         self.config.jump_add_offset = value;
+        self
+    }
+
+    pub fn memory_increment_i(mut self, value: bool) -> Self {
+        self.config.memory_increment_i = value;
         self
     }
 
@@ -232,6 +239,8 @@ impl Chip8 {
                 0x1E => self.op_add_to_index(opcode.x),
                 0x29 => self.op_font_character(opcode.x),
                 0x33 => self.op_convert_to_decimal(opcode.x),
+                0x55 => self.op_memory_store(opcode.x),
+                0x65 => self.op_memory_load(opcode.x),
                 _ => todo!(),
             },
             _ => todo!(),
@@ -510,6 +519,32 @@ impl Chip8 {
         self.memory.data[self.i as usize + 0] = n / 100 % 10;
         self.memory.data[self.i as usize + 1] = n / 10 % 10;
         self.memory.data[self.i as usize + 2] = n / 1 % 10;
+    }
+
+    /// 0xFX55
+    fn op_memory_store(&mut self, x: u8) {
+        println!("op_memory_store(FX55) {:#02x}", x);
+        assert!(self.i as usize + (x as usize) < MEM_SIZE);
+        let start = self.i as usize;
+        for i in 0..(x as usize) + 1 {
+            self.memory.data[start + i] = self.v[i];
+            if self.config.memory_increment_i {
+                self.i += 1;
+            }
+        }
+    }
+
+    /// 0xFX65
+    fn op_memory_load(&mut self, x: u8) {
+        println!("op_memory_load(FX65) {:#02x}", x);
+        assert!(self.i as usize + (x as usize) < MEM_SIZE);
+        let start = self.i as usize;
+        for i in 0..(x as usize) + 1 {
+            self.v[i] = self.memory.data[start + i];
+            if self.config.memory_increment_i {
+                self.i += 1;
+            }
+        }
     }
 }
 
@@ -939,5 +974,41 @@ mod tests {
             chip8.memory.data[chip8.i as usize..chip8.i as usize + 3],
             [1, 5, 6]
         );
+    }
+
+    #[test]
+    fn test_op_memory_store() {
+        let mut chip8 = Chip8::new().unwrap();
+        chip8.load_rom(&[0xF3, 0x55]).unwrap();
+
+        chip8.v[0..3].copy_from_slice(&[0x20, 0x10, 0x30]);
+        chip8.i = 0x300;
+        chip8.cycle();
+        assert_eq!(chip8.i, 0x300);
+        assert_eq!(chip8.memory.data[0x300..0x300 + 3], [0x20, 0x10, 0x30]);
+
+        chip8 = chip8.memory_increment_i(true);
+        chip8.pc = 0x200;
+        chip8.cycle();
+        assert_eq!(chip8.i, 0x300 + 4);
+        assert_eq!(chip8.memory.data[0x300..0x300 + 3], [0x20, 0x10, 0x30]);
+    }
+
+    #[test]
+    fn test_op_memory_load() {
+        let mut chip8 = Chip8::new().unwrap();
+        chip8.load_rom(&[0xF3, 0x65]).unwrap();
+
+        chip8.memory.data[0x300..0x300 + 3].copy_from_slice(&[0x20, 0x10, 0x30]);
+        chip8.i = 0x300;
+        chip8.cycle();
+        assert_eq!(chip8.i, 0x300);
+        assert_eq!(chip8.v[0..3], [0x20, 0x10, 0x30]);
+
+        chip8 = chip8.memory_increment_i(true);
+        chip8.pc = 0x200;
+        chip8.cycle();
+        assert_eq!(chip8.i, 0x300 + 4);
+        assert_eq!(chip8.v[0..3], [0x20, 0x10, 0x30]);
     }
 }
