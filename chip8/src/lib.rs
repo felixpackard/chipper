@@ -200,16 +200,16 @@ impl Chip8 {
             0x5 => self.op_skip_reg_eq(opcode.x, opcode.y),
             0x6 => self.op_set(opcode.x, opcode.nn),
             0x7 => self.op_add(opcode.x, opcode.nn),
-            0x8 => match (opcode.x, opcode.y, opcode.n) {
-                (_, _, 0) => self.op_reg_set(opcode.x, opcode.y),
-                (_, _, 1) => self.op_reg_or(opcode.x, opcode.y),
-                (_, _, 2) => self.op_reg_and(opcode.x, opcode.y),
-                (_, _, 3) => self.op_reg_xor(opcode.x, opcode.y),
-                (_, _, 4) => self.op_reg_add(opcode.x, opcode.y),
-                (_, _, 5) => self.op_reg_sub_right(opcode.x, opcode.y),
-                (_, _, 6) => self.op_reg_shift_right(opcode.x, opcode.y),
-                (_, _, 7) => self.op_reg_sub_left(opcode.x, opcode.y),
-                (_, _, 0xE) => self.op_reg_shift_left(opcode.x, opcode.y),
+            0x8 => match opcode.n {
+                0x0 => self.op_reg_set(opcode.x, opcode.y),
+                0x1 => self.op_reg_or(opcode.x, opcode.y),
+                0x2 => self.op_reg_and(opcode.x, opcode.y),
+                0x3 => self.op_reg_xor(opcode.x, opcode.y),
+                0x4 => self.op_reg_add(opcode.x, opcode.y),
+                0x5 => self.op_reg_sub_right(opcode.x, opcode.y),
+                0x6 => self.op_reg_shift_right(opcode.x, opcode.y),
+                0x7 => self.op_reg_sub_left(opcode.x, opcode.y),
+                0xE => self.op_reg_shift_left(opcode.x, opcode.y),
                 _ => todo!(),
             },
             0x9 => self.op_skip_reg_ne(opcode.x, opcode.y),
@@ -224,6 +224,7 @@ impl Chip8 {
             },
             0xF => match opcode.nn {
                 0x07 => self.op_dt_get(opcode.x),
+                0x0A => self.op_get_key(opcode.x),
                 0x15 => self.op_dt_set(opcode.x),
                 0x18 => self.op_st_set(opcode.x),
                 0x1E => self.op_add_to_index(opcode.x),
@@ -442,7 +443,7 @@ impl Chip8 {
     /// 0xEX9E
     fn op_skip_if_key_down(&mut self, x: u8) {
         println!("op_skip_if_key_down(EX9E) {:#02x}", x);
-        if self.keypad.is_key_down(x) {
+        if self.keypad.is_key_down(self.v[x as usize]) {
             self.pc += 2;
         }
     }
@@ -450,7 +451,7 @@ impl Chip8 {
     /// 0xEXA1
     fn op_skip_if_key_up(&mut self, x: u8) {
         println!("op_skip_if_key_up(EXA1) {:#02x}", x);
-        if self.keypad.is_key_up(x) {
+        if self.keypad.is_key_up(self.v[x as usize]) {
             self.pc += 2;
         }
     }
@@ -459,6 +460,18 @@ impl Chip8 {
     fn op_dt_get(&mut self, x: u8) {
         println!("op_dt_get(FX07) {:#02x}", x);
         self.v[x as usize] = self.dt;
+    }
+
+    /// 0xFX0A
+    fn op_get_key(&mut self, x: u8) {
+        println!("op_get_key(FX0A) {:#02x}", x);
+        for key in 0..0xF {
+            if self.keypad.is_key_down(key) {
+                self.v[x as usize] = key;
+                return;
+            }
+        }
+        self.pc -= 2;
     }
 
     /// 0xFX15
@@ -795,13 +808,14 @@ mod tests {
     #[test]
     fn test_op_skip_if_key_down() {
         let mut chip8 = Chip8::new().unwrap();
-        chip8.load_rom(&[0xE0, 0x9E]).unwrap();
+        chip8.load_rom(&[0xE1, 0x9E]).unwrap();
+        chip8.v[1] = 1;
 
         chip8.cycle();
         assert_eq!(chip8.pc, 0x202);
 
         chip8.pc = 0x200;
-        chip8.keypad.keys[0] = 1;
+        chip8.keypad.keys[1] = 1;
         chip8.cycle();
         assert_eq!(chip8.pc, 0x204);
     }
@@ -809,13 +823,14 @@ mod tests {
     #[test]
     fn test_op_skip_if_key_up() {
         let mut chip8 = Chip8::new().unwrap();
-        chip8.load_rom(&[0xE0, 0xA1]).unwrap();
+        chip8.load_rom(&[0xE1, 0xA1]).unwrap();
+        chip8.v[1] = 1;
 
         chip8.cycle();
         assert_eq!(chip8.pc, 0x204);
 
         chip8.pc = 0x200;
-        chip8.keypad.keys[0] = 1;
+        chip8.keypad.keys[1] = 1;
         chip8.cycle();
         assert_eq!(chip8.pc, 0x202);
     }
@@ -827,6 +842,21 @@ mod tests {
         chip8.dt = 0x10;
         chip8.cycle();
         assert_eq!(chip8.v[0], 0x10);
+    }
+
+    #[test]
+    fn test_op_get_key() {
+        let mut chip8 = Chip8::new().unwrap();
+        chip8.load_rom(&[0xF0, 0x0A]).unwrap();
+
+        chip8.cycle();
+        assert_eq!(chip8.v[0], 0);
+        assert_eq!(chip8.pc, 0x200);
+
+        chip8.keypad.keys[1] = 1;
+        chip8.cycle();
+        assert_eq!(chip8.v[0], 1);
+        assert_eq!(chip8.pc, 0x202);
     }
 
     #[test]
