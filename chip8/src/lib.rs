@@ -217,9 +217,15 @@ impl Chip8 {
             0xB => self.op_jump_with_offset(opcode.nnn, opcode.x),
             0xC => self.op_random(opcode.x, opcode.nn),
             0xD => self.op_display(opcode.x, opcode.y, opcode.n),
-            0xE => match (opcode.y, opcode.n) {
-                (0x9, 0xE) => self.op_skip_if_key_down(opcode.x),
-                (0xA, 0x1) => self.op_skip_if_key_up(opcode.x),
+            0xE => match opcode.nn {
+                0x9E => self.op_skip_if_key_down(opcode.x),
+                0xA1 => self.op_skip_if_key_up(opcode.x),
+                _ => todo!(),
+            },
+            0xF => match opcode.nn {
+                0x07 => self.op_dt_get(opcode.x),
+                0x15 => self.op_dt_set(opcode.x),
+                0x18 => self.op_st_set(opcode.x),
                 _ => todo!(),
             },
             _ => todo!(),
@@ -446,6 +452,24 @@ impl Chip8 {
         if self.keypad.is_key_up(x) {
             self.pc += 2;
         }
+    }
+
+    /// 0xFX07
+    fn op_dt_get(&mut self, x: u8) {
+        println!("op_dt_get(FX07) {:#02x}", x);
+        self.v[x as usize] = self.dt;
+    }
+
+    /// 0xFX15
+    fn op_dt_set(&mut self, x: u8) {
+        println!("op_dt_set(FX15) {:#02x}", x);
+        self.dt = self.v[x as usize];
+    }
+
+    /// 0xFX18
+    fn op_st_set(&mut self, x: u8) {
+        println!("op_st_set(FX18) {:#02x}", x);
+        self.st = self.v[x as usize];
     }
 }
 
@@ -787,5 +811,32 @@ mod tests {
         chip8.keypad.keys[0] = 1;
         chip8.cycle();
         assert_eq!(chip8.pc, 0x202);
+    }
+
+    #[test]
+    fn test_op_dt_get() {
+        let mut chip8 = Chip8::new().unwrap();
+        chip8.load_rom(&[0xF0, 0x07]).unwrap();
+        chip8.dt = 0x10;
+        chip8.cycle();
+        assert_eq!(chip8.v[0], 0x10);
+    }
+
+    #[test]
+    fn test_op_dt_set() {
+        let mut chip8 = Chip8::new().unwrap();
+        chip8.load_rom(&[0xF0, 0x15]).unwrap();
+        chip8.v[0] = 0x10;
+        chip8.cycle();
+        assert_eq!(chip8.dt, 0x10);
+    }
+
+    #[test]
+    fn test_op_st_set() {
+        let mut chip8 = Chip8::new().unwrap();
+        chip8.load_rom(&[0xF0, 0x18]).unwrap();
+        chip8.v[0] = 0x10;
+        chip8.cycle();
+        assert_eq!(chip8.st, 0x10);
     }
 }
