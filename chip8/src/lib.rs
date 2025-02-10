@@ -226,6 +226,7 @@ impl Chip8 {
                 0x07 => self.op_dt_get(opcode.x),
                 0x15 => self.op_dt_set(opcode.x),
                 0x18 => self.op_st_set(opcode.x),
+                0x1E => self.op_add_to_index(opcode.x),
                 _ => todo!(),
             },
             _ => todo!(),
@@ -470,6 +471,12 @@ impl Chip8 {
     fn op_st_set(&mut self, x: u8) {
         println!("op_st_set(FX18) {:#02x}", x);
         self.st = self.v[x as usize];
+    }
+
+    /// 0xFX1E
+    fn op_add_to_index(&mut self, x: u8) {
+        println!("op_add_to_index(FX1E) {:#02x}", x);
+        self.i = self.i.saturating_add(self.v[x as usize] as u16);
     }
 }
 
@@ -838,5 +845,15 @@ mod tests {
         chip8.v[0] = 0x10;
         chip8.cycle();
         assert_eq!(chip8.st, 0x10);
+    }
+
+    #[test]
+    fn test_op_add_to_index() {
+        let mut chip8 = Chip8::new().unwrap();
+        chip8.load_rom(&[0xF0, 0x1E]).unwrap();
+        chip8.i = 0x10;
+        chip8.v[0] = 0x10;
+        chip8.cycle();
+        assert_eq!(chip8.i, 0x20);
     }
 }
