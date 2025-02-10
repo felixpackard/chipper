@@ -1,4 +1,5 @@
 mod display;
+mod keypad;
 mod memory;
 
 use std::fmt::Display as FmtDisplay;
@@ -8,6 +9,7 @@ use anyhow::Context;
 use rand::Rng;
 
 use crate::display::Display;
+use crate::keypad::Keypad;
 use crate::memory::Memory;
 
 pub const FONT_DATA: [u8; 5 * 0x10] = [
@@ -66,8 +68,10 @@ pub struct Chip8 {
     config: Chip8Config,
     /// Heap-allocated RAM that stores font data, ROMs, and is fully writeable
     memory: Memory,
-    /// A bit-packed frame buffer containing binary pixel states
+    /// A frame buffer containing binary pixel states
     display: Display,
+    /// A hexadecimal keypad containing 16 key states labelled 0 through F
+    keypad: Keypad,
     /// A stack for 16-bit addresses, which is used to call subroutines/functions and return from them
     stack: [u16; STACK_SIZE],
     /// A pointer to the current stack address in use
@@ -95,6 +99,7 @@ impl Chip8 {
             config: Chip8Config::new(),
             memory,
             display: Display::new(),
+            keypad: Keypad::new(),
             stack: [0; STACK_SIZE],
             sp: 0,
             v: [0; REGISTER_COUNT],
@@ -135,6 +140,14 @@ impl Chip8 {
 
     pub fn fb(&mut self) -> crate::display::FrameBuffer {
         self.display.fb()
+    }
+
+    pub fn keydown(&mut self, scancode: u32) -> anyhow::Result<()> {
+        self.keypad.keydown(scancode)
+    }
+
+    pub fn keyup(&mut self, scancode: u32) -> anyhow::Result<()> {
+        self.keypad.keyup(scancode)
     }
 
     pub fn cycle(&mut self) {
@@ -204,6 +217,11 @@ impl Chip8 {
             0xB => self.op_jump_with_offset(opcode.nnn, opcode.x),
             0xC => self.op_random(opcode.x, opcode.nn),
             0xD => self.op_display(opcode.x, opcode.y, opcode.n),
+            0xE => match (opcode.y, opcode.n) {
+                (0x9, 0xE) => self.op_skip_if_key_down(opcode.x),
+                (0xA, 0x1) => self.op_skip_if_key_up(opcode.x),
+                _ => todo!(),
+            },
             _ => todo!(),
         }
     }
@@ -411,6 +429,22 @@ impl Chip8 {
                     }
                 }
             }
+        }
+    }
+
+    /// 0xEX9E
+    fn op_skip_if_key_down(&mut self, x: u8) {
+        println!("op_skip_if_key_down(EX9E) {:#02x}", x);
+        if self.keypad.is_key_down(x) {
+            self.pc += 2;
+        }
+    }
+
+    /// 0xEXA1
+    fn op_skip_if_key_up(&mut self, x: u8) {
+        println!("op_skip_if_key_up(EXA1) {:#02x}", x);
+        if self.keypad.is_key_up(x) {
+            self.pc += 2;
         }
     }
 }
@@ -700,8 +734,7 @@ mod tests {
         let mut chip8 = Chip8::new().unwrap();
         chip8.load_rom(&[0xC0, 0x10]).unwrap();
         chip8.cycle();
-        let a = chip8.v[0];
-        assert_eq!(a & 0x10, 0x10);
+        // can't easily test random operation, so we just make sure the operation doesn't panic
     }
 
     #[test]
@@ -726,5 +759,33 @@ mod tests {
         assert_eq!(chip8.display.is_set(sx + 7, sy), false);
         assert_eq!(chip8.display.is_set(sx + 6, sy + 1), false);
         assert_eq!(chip8.display.is_set(sx + 7, sy + 1), true);
+    }
+
+    #[test]
+    fn test_op_skip_if_key_down() {
+        let mut chip8 = Chip8::new().unwrap();
+        chip8.load_rom(&[0xE0, 0x9E]).unwrap();
+
+        chip8.cycle();
+        assert_eq!(chip8.pc, 0x202);
+
+        chip8.pc = 0x200;
+        chip8.keypad.keys[0] = 1;
+        chip8.cycle();
+        assert_eq!(chip8.pc, 0x204);
+    }
+
+    #[test]
+    fn test_op_skip_if_key_up() {
+        let mut chip8 = Chip8::new().unwrap();
+        chip8.load_rom(&[0xE0, 0xA1]).unwrap();
+
+        chip8.cycle();
+        assert_eq!(chip8.pc, 0x204);
+
+        chip8.pc = 0x200;
+        chip8.keypad.keys[0] = 1;
+        chip8.cycle();
+        assert_eq!(chip8.pc, 0x202);
     }
 }

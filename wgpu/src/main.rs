@@ -9,7 +9,10 @@ use winit::{
     dpi::LogicalSize,
     event::WindowEvent,
     event_loop::{self, EventLoop},
-    platform::pump_events::{EventLoopExtPumpEvents, PumpStatus},
+    platform::{
+        pump_events::{EventLoopExtPumpEvents, PumpStatus},
+        scancode::PhysicalKeyExtScancode,
+    },
     window::Window,
 };
 
@@ -124,6 +127,30 @@ impl ApplicationHandler for App {
 
                 state.window.pre_present_notify();
                 App::render(state);
+            }
+            WindowEvent::KeyboardInput {
+                device_id: _,
+                event,
+                is_synthetic: _,
+            } => {
+                if let Some(scancode) = event.physical_key.to_scancode() {
+                    let Some(state) = self.state.as_mut() else {
+                        return;
+                    };
+
+                    if event.state.is_pressed() {
+                        if event.repeat {
+                            return;
+                        }
+                        if let Err(e) = state.chip8.keydown(scancode) {
+                            eprintln!("keydown failed: {:?}", e);
+                        }
+                    } else {
+                        if let Err(e) = state.chip8.keyup(scancode) {
+                            eprintln!("keyup failed: {:?}", e);
+                        }
+                    }
+                }
             }
             _ => (),
         }
