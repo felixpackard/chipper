@@ -5,6 +5,7 @@ use std::fmt::Display as FmtDisplay;
 use std::path::PathBuf;
 
 use anyhow::Context;
+use rand::Rng;
 
 use crate::display::Display;
 use crate::memory::Memory;
@@ -201,6 +202,7 @@ impl Chip8 {
             0x9 => self.op_skip_reg_ne(opcode.x, opcode.y),
             0xA => self.op_set_index(opcode.nnn),
             0xB => self.op_jump_with_offset(opcode.nnn, opcode.x),
+            0xC => self.op_random(opcode.x, opcode.nn),
             0xD => self.op_display(opcode.x, opcode.y, opcode.n),
             _ => todo!(),
         }
@@ -374,6 +376,12 @@ impl Chip8 {
         } else {
             nnn
         };
+    }
+
+    /// 0xCNNN
+    fn op_random(&mut self, x: u8, nn: u8) {
+        println!("op_random(CXNN) {:#02x} {:#02x}", x, nn);
+        self.v[x as usize] = nn & rand::rng().random::<u8>();
     }
 
     /// 0xDXYN
@@ -685,6 +693,15 @@ mod tests {
         chip8.v[3] = 0x10;
         chip8.cycle();
         assert_eq!(chip8.pc, 0x300 + 0x10);
+    }
+
+    #[test]
+    fn test_op_random() {
+        let mut chip8 = Chip8::new().unwrap();
+        chip8.load_rom(&[0xC0, 0x10]).unwrap();
+        chip8.cycle();
+        let a = chip8.v[0];
+        assert_eq!(a & 0x10, 0x10);
     }
 
     #[test]
