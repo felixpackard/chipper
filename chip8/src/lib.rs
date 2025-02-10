@@ -231,6 +231,7 @@ impl Chip8 {
                 0x18 => self.op_st_set(opcode.x),
                 0x1E => self.op_add_to_index(opcode.x),
                 0x29 => self.op_font_character(opcode.x),
+                0x33 => self.op_convert_to_decimal(opcode.x),
                 _ => todo!(),
             },
             _ => todo!(),
@@ -499,6 +500,16 @@ impl Chip8 {
     fn op_font_character(&mut self, x: u8) {
         println!("op_font_character(FX29) {:#02x}", x);
         self.i = (FONT_ADDR + FONT_CHAR_LENGTH * self.v[x as usize] as usize) as u16;
+    }
+
+    /// 0xFX33
+    fn op_convert_to_decimal(&mut self, x: u8) {
+        println!("op_convert_to_decimal(FX33) {:#02x}", x);
+        let n = self.v[x as usize];
+        assert!(self.i as usize + 3 < MEM_SIZE);
+        self.memory.data[self.i as usize + 0] = n / 100 % 10;
+        self.memory.data[self.i as usize + 1] = n / 10 % 10;
+        self.memory.data[self.i as usize + 2] = n / 1 % 10;
     }
 }
 
@@ -914,6 +925,19 @@ mod tests {
         assert_eq!(
             chip8.memory.data[chip8.i as usize..chip8.i as usize + FONT_CHAR_LENGTH],
             FONT_DATA[0xF * FONT_CHAR_LENGTH..0xF * FONT_CHAR_LENGTH + FONT_CHAR_LENGTH]
+        );
+    }
+
+    #[test]
+    fn test_op_convert_to_decimal() {
+        let mut chip8 = Chip8::new().unwrap();
+        chip8.load_rom(&[0xF0, 0x33]).unwrap();
+        chip8.v[0] = 156;
+        chip8.i = 0x300;
+        chip8.cycle();
+        assert_eq!(
+            chip8.memory.data[chip8.i as usize..chip8.i as usize + 3],
+            [1, 5, 6]
         );
     }
 }
