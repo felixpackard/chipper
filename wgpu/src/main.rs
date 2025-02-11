@@ -4,6 +4,7 @@ use anyhow::Context;
 use chip8::Chip8;
 use clap::{command, Parser};
 use pixels::{Pixels, SurfaceTexture};
+use rodio::{OutputStream, Sink};
 use winit::{
     application::ApplicationHandler,
     dpi::LogicalSize,
@@ -43,6 +44,8 @@ struct State {
     pub(crate) chip8: Chip8,
     pub(crate) window: Arc<Window>,
     pub(crate) pixels: Pixels<'static>,
+    pub(crate) sink: Sink,
+    _stream: OutputStream,
 }
 
 struct App {
@@ -89,10 +92,18 @@ impl App {
         )
         .context("create pixels instance")?;
 
+        let (_stream, stream_handle) =
+            OutputStream::try_default().context("create default output stream")?;
+        let sink = Sink::try_new(&stream_handle).context("create audio sink")?;
+        sink.append(rodio::source::SineWave::new(440.0));
+        sink.pause();
+
         self.state = Some(State {
             chip8,
             window,
             pixels,
+            sink,
+            _stream,
         });
 
         App::render(self.state.as_mut().unwrap());
@@ -226,6 +237,11 @@ fn main() -> std::process::ExitCode {
             state.chip8.cycle();
             if state.chip8.is_fb_dirty() {
                 state.window.clone().request_redraw();
+            }
+            if state.chip8.is_sound_playing() {
+                state.sink.play();
+            } else {
+                state.sink.pause();
             }
         }
 

@@ -168,6 +168,10 @@ impl Chip8 {
         self.display.dirty
     }
 
+    pub fn is_sound_playing(&self) -> bool {
+        self.st > 0
+    }
+
     pub fn fb(&mut self) -> crate::display::FrameBuffer {
         self.display.fb()
     }
