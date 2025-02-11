@@ -63,15 +63,15 @@ impl App {
             .context("construct new chip8 instance")?
             .legacy_shift(self.config.args.legacy_shift)
             .jump_add_offset(self.config.args.jump_add_offset)
-            .memory_increment_i(self.config.args.memory_increment_i);
+            .memory_increment_i(self.config.args.memory_increment_i)
+            .print_operations(self.config.args.print_operations)
+            .ops_per_cycle(self.config.args.ops_per_cycle);
 
         if let Some(path) = self.config.args.load.to_owned() {
             chip8
                 .load_rom_from_file(path)
                 .context("load rom from file")?;
         }
-
-        println!("{}", chip8);
 
         let window = event_loop
             .create_window(self.config.window.to_owned())
@@ -179,16 +179,29 @@ impl App {
 }
 
 #[derive(Parser, Debug)]
-#[command(version, about, long_about = None)]
+#[command(version, about = "chipper – the friendly CHIP-8 interpreter :)", long_about = None)]
 struct Args {
     #[arg(short, long, value_name = "PATH", help = "Load ROM into memory", value_hint = clap::ValueHint::FilePath)]
     load: Option<PathBuf>,
-    #[arg(long, help = "Toggle shift operation modes")]
+    #[arg(long, help_heading = "Quirks", help = "Toggle shift operation modes")]
     legacy_shift: bool,
-    #[arg(long, help = "Toggle jump operation modes")]
+    #[arg(long, help_heading = "Quirks", help = "Toggle jump operation modes")]
     jump_add_offset: bool,
-    #[arg(long, help = "Toggle memory read/write operation modes")]
+    #[arg(
+        long,
+        help_heading = "Quirks",
+        help = "Toggle memory read/write operation modes"
+    )]
     memory_increment_i: bool,
+    #[arg(long, help = "Toggle logging executed operations to stdout")]
+    print_operations: bool,
+    #[arg(
+        long,
+        default_value = "11",
+        value_name = "OPS",
+        help = "The number of operations to be performed every cycle"
+    )]
+    ops_per_cycle: usize,
 }
 
 fn main() -> std::process::ExitCode {
