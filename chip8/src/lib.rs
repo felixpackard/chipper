@@ -5,7 +5,7 @@ mod memory;
 use std::fmt::Display as FmtDisplay;
 use std::path::PathBuf;
 
-use anyhow::{bail, ensure, Context};
+use anyhow::{bail, Context};
 use rand::Rng;
 
 use crate::display::Display;
@@ -228,7 +228,7 @@ impl Chip8 {
             0x0 => match (opcode.x, opcode.y, opcode.n) {
                 (0, 0xE, 0) => self.op_cls(),
                 (0, 0xE, 0xE) => self.op_sub_return(),
-                _ => self.bail_invalid_op(opcode).unwrap(),
+                _ => self.bail_invalid_op(opcode, true).unwrap(),
             },
             0x1 => self.op_jump(opcode.nnn),
             0x2 => self.op_sub_call(opcode.nnn),
@@ -247,7 +247,7 @@ impl Chip8 {
                 0x6 => self.op_reg_shift_right(opcode.x, opcode.y),
                 0x7 => self.op_reg_sub_left(opcode.x, opcode.y),
                 0xE => self.op_reg_shift_left(opcode.x, opcode.y),
-                _ => self.bail_invalid_op(opcode).unwrap(),
+                _ => self.bail_invalid_op(opcode, false).unwrap(),
             },
             0x9 => self.op_skip_reg_ne(opcode.x, opcode.y),
             0xA => self.op_set_index(opcode.nnn),
@@ -257,7 +257,7 @@ impl Chip8 {
             0xE => match opcode.nn {
                 0x9E => self.op_skip_if_key_down(opcode.x),
                 0xA1 => self.op_skip_if_key_up(opcode.x),
-                _ => self.bail_invalid_op(opcode).unwrap(),
+                _ => self.bail_invalid_op(opcode, false).unwrap(),
             },
             0xF => match opcode.nn {
                 0x07 => self.op_dt_get(opcode.x),
@@ -269,17 +269,22 @@ impl Chip8 {
                 0x33 => self.op_convert_to_decimal(opcode.x),
                 0x55 => self.op_memory_store(opcode.x),
                 0x65 => self.op_memory_load(opcode.x),
-                _ => self.bail_invalid_op(opcode).unwrap(),
+                _ => self.bail_invalid_op(opcode, false).unwrap(),
             },
-            _ => self.bail_invalid_op(opcode).unwrap(),
+            _ => self.bail_invalid_op(opcode, false).unwrap(),
         }
     }
 
-    fn bail_invalid_op(&self, opcode: Opcode) -> anyhow::Result<()> {
+    fn bail_invalid_op(&self, opcode: Opcode, machine_code: bool) -> anyhow::Result<()> {
         bail!(
-            "invalid opcode '{}' encountered at {:#04x}",
+            "invalid opcode '{}' encountered at {:#04x}{}",
             opcode,
-            self.pc - 2
+            self.pc - 2,
+            if machine_code {
+                " (machine code is not supported)"
+            } else {
+                ""
+            }
         );
     }
 
