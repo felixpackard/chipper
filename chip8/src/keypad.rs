@@ -1,5 +1,3 @@
-use anyhow::Context;
-
 pub struct Key(Option<usize>);
 
 impl Key {
