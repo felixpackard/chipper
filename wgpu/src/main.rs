@@ -1,7 +1,7 @@
 use std::{path::PathBuf, sync::Arc, time};
 
 use anyhow::Context;
-use chip8::Chip8;
+use chip8::{Chip8, Key};
 use clap::{command, Parser};
 use pixels::{Pixels, SurfaceTexture};
 use rodio::{OutputStream, Sink};
@@ -154,11 +154,11 @@ impl ApplicationHandler for App {
                         if event.repeat {
                             return;
                         }
-                        if let Err(e) = state.chip8.keydown(scancode) {
+                        if let Err(e) = state.chip8.keydown(Key::from_scancode(scancode)) {
                             eprintln!("keydown failed: {:?}", e);
                         }
                     } else {
-                        if let Err(e) = state.chip8.keyup(scancode) {
+                        if let Err(e) = state.chip8.keyup(Key::from_scancode(scancode)) {
                             eprintln!("keyup failed: {:?}", e);
                         }
                     }

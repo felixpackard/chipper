@@ -2,7 +2,6 @@ mod display;
 mod keypad;
 mod memory;
 
-use std::fmt::Display as FmtDisplay;
 use std::path::PathBuf;
 
 use anyhow::{bail, Context};
@@ -11,6 +10,9 @@ use rand::Rng;
 use crate::display::Display;
 use crate::keypad::Keypad;
 use crate::memory::Memory;
+
+pub use display::FrameBuffer;
+pub use keypad::Key;
 
 pub const FONT_CHAR_LENGTH: usize = 5;
 
@@ -52,7 +54,7 @@ struct Opcode {
     nnn: u16,
 }
 
-impl FmtDisplay for Opcode {
+impl std::fmt::Display for Opcode {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "0x{:#}{:#}", self.c, self.nnn)
     }
@@ -176,12 +178,12 @@ impl Chip8 {
         self.display.fb()
     }
 
-    pub fn keydown(&mut self, scancode: u32) -> anyhow::Result<()> {
-        self.keypad.keydown(scancode)
+    pub fn keydown(&mut self, key: Key) -> anyhow::Result<()> {
+        self.keypad.keydown(key)
     }
 
-    pub fn keyup(&mut self, scancode: u32) -> anyhow::Result<()> {
-        self.keypad.keyup(scancode)
+    pub fn keyup(&mut self, key: Key) -> anyhow::Result<()> {
+        self.keypad.keyup(key)
     }
 
     pub fn cycle(&mut self) {
@@ -599,9 +601,11 @@ impl Chip8 {
     }
 }
 
-impl FmtDisplay for Chip8 {
+impl std::fmt::Display for Chip8 {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "=== Memory ===\n{}", self.memory)
+        write!(f, "=== Memory ===\n{}", self.memory)?;
+        write!(f, "=== Display ===\n{}", self.display)?;
+        Ok(())
     }
 }
 
