@@ -1015,7 +1015,7 @@ dependencies = [
 [[package]]
 name = "collections"
 version = "0.1.0"
-source = "git+https://github.com/zed-industries/zed#6a95ec6a64c7b56ce107cec5b089765610ebbabd"
+source = "git+https://github.com/felixpackard/zed?branch=keyup-events#66a4d52316e6bf71416e8b589b8aca0b343cf35c"
 dependencies = [
  "indexmap",
  "rustc-hash 2.1.1",
@@ -1196,6 +1196,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "core_maths"
+version = "0.1.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "77745e017f5edba1a9c1d854f6f3a52dac8a12dd5af5d2f54aecf61e43d80d30"
+dependencies = [
+ "libm",
+]
+
+[[package]]
 name = "coreaudio-rs"
 version = "0.11.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1221,12 +1230,12 @@ version = "0.11.2"
 source = "git+https://github.com/pop-os/cosmic-text?rev=542b20c#542b20ca4376a3b5de5fa629db1a4ace44e18e0c"
 dependencies = [
  "bitflags 2.8.0",
- "fontdb",
+ "fontdb 0.18.0",
  "log",
  "rangemap",
  "rayon",
  "rustc-hash 1.1.0",
- "rustybuzz",
+ "rustybuzz 0.14.1",
  "self_cell",
  "swash",
  "sys-locale",
@@ -1390,7 +1399,7 @@ dependencies = [
 [[package]]
 name = "derive_refineable"
 version = "0.1.0"
-source = "git+https://github.com/zed-industries/zed#6a95ec6a64c7b56ce107cec5b089765610ebbabd"
+source = "git+https://github.com/felixpackard/zed?branch=keyup-events#66a4d52316e6bf71416e8b589b8aca0b343cf35c"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -1839,6 +1848,20 @@ dependencies = [
 ]
 
 [[package]]
+name = "fontdb"
+version = "0.23.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "457e789b3d1202543297a350643cf459f836cade38934e7a4cf6a39e7cde2905"
+dependencies = [
+ "fontconfig-parser",
+ "log",
+ "memmap2",
+ "slotmap",
+ "tinyvec",
+ "ttf-parser 0.25.1",
+]
+
+[[package]]
 name = "foreign-types"
 version = "0.5.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2258,13 +2281,13 @@ version = "0.1.0"
 dependencies = [
  "anyhow",
  "chip8",
- "gpui 0.1.0 (git+https://github.com/zed-industries/zed)",
+ "gpui 0.1.0 (git+https://github.com/felixpackard/zed?branch=keyup-events)",
 ]
 
 [[package]]
 name = "gpui"
 version = "0.1.0"
-source = "git+https://github.com/zed-industries/zed#6a95ec6a64c7b56ce107cec5b089765610ebbabd"
+source = "git+https://github.com/felixpackard/zed?branch=keyup-events#66a4d52316e6bf71416e8b589b8aca0b343cf35c"
 dependencies = [
  "anyhow",
  "as-raw-xcb-connection",
@@ -2351,7 +2374,7 @@ dependencies = [
 [[package]]
 name = "gpui_macros"
 version = "0.1.0"
-source = "git+https://github.com/zed-industries/zed#6a95ec6a64c7b56ce107cec5b089765610ebbabd"
+source = "git+https://github.com/felixpackard/zed?branch=keyup-events#66a4d52316e6bf71416e8b589b8aca0b343cf35c"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -2502,7 +2525,7 @@ dependencies = [
 [[package]]
 name = "http_client"
 version = "0.1.0"
-source = "git+https://github.com/zed-industries/zed#6a95ec6a64c7b56ce107cec5b089765610ebbabd"
+source = "git+https://github.com/felixpackard/zed?branch=keyup-events#66a4d52316e6bf71416e8b589b8aca0b343cf35c"
 dependencies = [
  "anyhow",
  "bytes",
@@ -3126,7 +3149,7 @@ dependencies = [
 [[package]]
 name = "media"
 version = "0.1.0"
-source = "git+https://github.com/zed-industries/zed#6a95ec6a64c7b56ce107cec5b089765610ebbabd"
+source = "git+https://github.com/felixpackard/zed?branch=keyup-events#66a4d52316e6bf71416e8b589b8aca0b343cf35c"
 dependencies = [
  "anyhow",
  "bindgen 0.70.1",
@@ -4362,7 +4385,7 @@ dependencies = [
 [[package]]
 name = "refineable"
 version = "0.1.0"
-source = "git+https://github.com/zed-industries/zed#6a95ec6a64c7b56ce107cec5b089765610ebbabd"
+source = "git+https://github.com/felixpackard/zed?branch=keyup-events#66a4d52316e6bf71416e8b589b8aca0b343cf35c"
 dependencies = [
  "derive_refineable",
 ]
@@ -4404,9 +4427,9 @@ checksum = "19b30a45b0cd0bcca8037f3d0dc3421eaf95327a17cad11964fb8179b4fc4832"
 
 [[package]]
 name = "resvg"
-version = "0.44.0"
+version = "0.45.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4a325d5e8d1cebddd070b13f44cec8071594ab67d1012797c121f27a669b7958"
+checksum = "dd43d1c474e9dadf09a8fdf22d713ba668b499b5117b9b9079500224e26b5b29"
 dependencies = [
  "log",
  "pico-args",
@@ -4629,8 +4652,26 @@ dependencies = [
  "libm",
  "smallvec",
  "ttf-parser 0.21.1",
- "unicode-bidi-mirroring",
- "unicode-ccc",
+ "unicode-bidi-mirroring 0.2.0",
+ "unicode-ccc 0.2.0",
+ "unicode-properties",
+ "unicode-script",
+]
+
+[[package]]
+name = "rustybuzz"
+version = "0.20.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "fd3c7c96f8a08ee34eff8857b11b49b07d71d1c3f4e88f8a88d4c9e9f90b1702"
+dependencies = [
+ "bitflags 2.8.0",
+ "bytemuck",
+ "core_maths",
+ "log",
+ "smallvec",
+ "ttf-parser 0.25.1",
+ "unicode-bidi-mirroring 0.4.0",
+ "unicode-ccc 0.4.0",
  "unicode-properties",
  "unicode-script",
 ]
@@ -4756,7 +4797,7 @@ checksum = "c2fdfc24bc566f839a2da4c4295b82db7d25a24253867d5c64355abb5799bdbe"
 [[package]]
 name = "semantic_version"
 version = "0.1.0"
-source = "git+https://github.com/zed-industries/zed#6a95ec6a64c7b56ce107cec5b089765610ebbabd"
+source = "git+https://github.com/felixpackard/zed?branch=keyup-events#66a4d52316e6bf71416e8b589b8aca0b343cf35c"
 dependencies = [
  "anyhow",
  "serde",
@@ -5064,7 +5105,7 @@ checksum = "13c2bddecc57b384dee18652358fb23172facb8a2c51ccc10d74c157bdea3292"
 [[package]]
 name = "sum_tree"
 version = "0.1.0"
-source = "git+https://github.com/zed-industries/zed#6a95ec6a64c7b56ce107cec5b089765610ebbabd"
+source = "git+https://github.com/felixpackard/zed?branch=keyup-events#66a4d52316e6bf71416e8b589b8aca0b343cf35c"
 dependencies = [
  "arrayvec",
  "log",
@@ -5525,6 +5566,9 @@ name = "ttf-parser"
 version = "0.25.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d2df906b07856748fa3f6e0ad0cbaa047052d4a7dd609e231c4f72cee8c36f31"
+dependencies = [
+ "core_maths",
+]
 
 [[package]]
 name = "typeid"
@@ -5577,10 +5621,22 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "23cb788ffebc92c5948d0e997106233eeb1d8b9512f93f41651f52b6c5f5af86"
 
 [[package]]
+name = "unicode-bidi-mirroring"
+version = "0.4.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "5dfa6e8c60bb66d49db113e0125ee8711b7647b5579dc7f5f19c42357ed039fe"
+
+[[package]]
 name = "unicode-ccc"
 version = "0.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "1df77b101bcc4ea3d78dafc5ad7e4f58ceffe0b2b16bf446aeb50b6cb4157656"
+
+[[package]]
+name = "unicode-ccc"
+version = "0.4.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "ce61d488bcdc9bc8b5d1772c404828b17fc481c0a582b5581e95fb233aef503e"
 
 [[package]]
 name = "unicode-ident"
@@ -5611,6 +5667,12 @@ name = "unicode-segmentation"
 version = "1.12.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "f6ccf251212114b54433ec949fd6a7841275f9ada20dddd2f29e9ceea4501493"
+
+[[package]]
+name = "unicode-vo"
+version = "0.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b1d386ff53b415b7fe27b50bb44679e2cc4660272694b7b6f3326d8480823a94"
 
 [[package]]
 name = "unicode-width"
@@ -5644,23 +5706,28 @@ dependencies = [
 
 [[package]]
 name = "usvg"
-version = "0.44.0"
+version = "0.45.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7447e703d7223b067607655e625e0dbca80822880248937da65966194c4864e6"
+checksum = "2ac8e0e3e4696253dc06167990b3fe9a2668ab66270adf949a464db4088cb354"
 dependencies = [
  "base64",
  "data-url",
  "flate2",
+ "fontdb 0.23.0",
  "imagesize",
  "kurbo",
  "log",
  "pico-args",
  "roxmltree",
+ "rustybuzz 0.20.1",
  "simplecss",
  "siphasher",
  "strict-num",
  "svgtypes",
  "tiny-skia-path",
+ "unicode-bidi",
+ "unicode-script",
+ "unicode-vo",
  "xmlwriter",
 ]
 
@@ -5691,7 +5758,7 @@ checksum = "06abde3611657adf66d383f00b093d7faecc7fa57071cce2578660c9f1010821"
 [[package]]
 name = "util"
 version = "0.1.0"
-source = "git+https://github.com/zed-industries/zed#6a95ec6a64c7b56ce107cec5b089765610ebbabd"
+source = "git+https://github.com/felixpackard/zed?branch=keyup-events#66a4d52316e6bf71416e8b589b8aca0b343cf35c"
 dependencies = [
  "anyhow",
  "async-fs",
