@@ -96,7 +96,12 @@ For more info, run the binary with the `--help` argument.
 
 ## Screenshots
 
-[TODO: Add screenshots]
+<img src="screenshots/tetris.png" width="600" />
+
+<img src="screenshots/connect-four.png" width="600" />
+
+<img src="screenshots/space-invaders.png" width="600" />
+
 
 ## License
 
@@ -124,3 +129,8 @@ Contributions are welcome! Please feel free to create an Issue or submit a Pull 
 - Tobias V. Langhoff High Level Guide – https://tobiasvl.github.io/blog/write-a-chip-8-emulator/
 - Cowgod's CHIP-8 Technical Reference – http://devernay.free.fr/hacks/chip8/C8TECH10.HTM
 - The collection of ROMs – https://github.com/kripod/chip8-roms
+
+[//]: # (general links)
+
+[LICENSE-APACHE]: https://github.com/felixpackard/cargo-test-changed/blob/master/LICENSE-APACHE
+[LICENSE-MIT]: https://github.com/felixpackard/cargo-test-changed/blob/master/LICENSE-MIT
