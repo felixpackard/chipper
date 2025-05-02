@@ -1,4 +1,4 @@
-# chipper – the friendly CHIP-8 interpreter
+# 🤖 chipper – the friendly CHIP-8 interpreter
 
 Chipper is a minimal and robust CHIP-8 interpreter written in Rust, featuring accurate emulation, configurable settings, and a clean graphical interface. It provides a platform for running classic CHIP-8 games and programs with high compatibility.
 
