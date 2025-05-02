@@ -102,7 +102,6 @@ For more info, run the binary with the `--help` argument.
 
 <img src="screenshots/space-invaders.png" width="600" />
 
-
 ## License
 
 Licensed under either of:
@@ -130,7 +129,6 @@ Contributions are welcome! Please feel free to create an Issue or submit a Pull 
 - Cowgod's CHIP-8 Technical Reference – http://devernay.free.fr/hacks/chip8/C8TECH10.HTM
 - The collection of ROMs – https://github.com/kripod/chip8-roms
 
-[//]: # (general links)
-
-[LICENSE-APACHE]: https://github.com/felixpackard/cargo-test-changed/blob/master/LICENSE-APACHE
-[LICENSE-MIT]: https://github.com/felixpackard/cargo-test-changed/blob/master/LICENSE-MIT
+[//]: # "general links"
+[LICENSE-APACHE]: https://github.com/felixpackard/chipper/blob/master/LICENSE-APACHE
+[LICENSE-MIT]: https://github.com/felixpackard/chipper/blob/master/LICENSE-MIT
