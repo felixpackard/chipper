@@ -1,7 +1,7 @@
 use std::{path::PathBuf, str::FromStr, time::Duration};
 
 use anyhow::Context;
-use chip8::{Chip8, FrameBuffer, Key};
+use chipper_core::{Chip8, FrameBuffer, Key};
 use gpui::{
     actions, canvas, div, fill, point, prelude::*, px, size, App, Application, Bounds, FocusHandle,
     KeyBinding, KeyDownEvent, KeyUpEvent, Menu, MenuItem, Pixels, Window, WindowBounds,
@@ -102,8 +102,8 @@ fn main() {
         let bounds = Bounds::centered(
             None,
             size(
-                px(chip8::SCREEN_WIDTH as f32 * SCALE_FACTOR),
-                px(chip8::SCREEN_HEIGHT as f32 * SCALE_FACTOR),
+                px(chipper_core::SCREEN_WIDTH as f32 * SCALE_FACTOR),
+                px(chipper_core::SCREEN_HEIGHT as f32 * SCALE_FACTOR),
             ),
             cx,
         );

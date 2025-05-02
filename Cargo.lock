@@ -858,11 +858,34 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "613afe47fcd5fac7ccf1db93babcb082c5994d996f20b8b159f2ad1658eb5724"
 
 [[package]]
-name = "chip8"
+name = "chipper-core"
 version = "0.1.0"
 dependencies = [
  "anyhow",
  "rand 0.9.0",
+]
+
+[[package]]
+name = "chipper-gpui"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "chipper-core",
+ "gpui",
+]
+
+[[package]]
+name = "chipper-wgpu"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "chipper-core",
+ "clap",
+ "env_logger",
+ "pixels",
+ "rodio",
+ "wgpu 24.0.1",
+ "winit",
 ]
 
 [[package]]
@@ -2273,15 +2296,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "fdf242682df893b86f33a73828fb09ca4b2d3bb6cc95249707fc684d27484b91"
 dependencies = [
  "bitflags 2.8.0",
-]
-
-[[package]]
-name = "gpui"
-version = "0.1.0"
-dependencies = [
- "anyhow",
- "chip8",
- "gpui 0.1.0 (git+https://github.com/felixpackard/zed?branch=keyup-events)",
 ]
 
 [[package]]
@@ -6141,20 +6155,6 @@ name = "weezl"
 version = "0.1.8"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "53a85b86a771b1c87058196170769dd264f66c0782acf1ae6cc51bfd64b39082"
-
-[[package]]
-name = "wgpu"
-version = "0.1.0"
-dependencies = [
- "anyhow",
- "chip8",
- "clap",
- "env_logger",
- "pixels",
- "rodio",
- "wgpu 24.0.1",
- "winit",
-]
 
 [[package]]
 name = "wgpu"

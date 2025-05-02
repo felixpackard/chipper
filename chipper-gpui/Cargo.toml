@@ -1,9 +1,9 @@
 [package]
-name = "gpui"
+name = "chipper-gpui"
 version = "0.1.0"
 edition = "2021"
 
 [dependencies]
 anyhow = "1.0.97"
-chip8 = { path = "../chip8" }
+chipper-core = { path = "../chipper-core" }
 gpui = { git = "https://github.com/felixpackard/zed", branch = "keyup-events" }

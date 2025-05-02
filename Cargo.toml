@@ -1,2 +1,2 @@
 [workspace]
-members = ["chip8", "gpui", "wgpu"]
+members = ["chipper-core", "chipper-wgpu", "chipper-gpui"]

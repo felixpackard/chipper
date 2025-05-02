@@ -29,7 +29,7 @@ Chipper is a minimal and robust CHIP-8 interpreter written in Rust, featuring ac
 ### Building
 
 ```bash
-cargo build --bin wgpu --release
+cargo build --bin chipper-wgpu --release
 ```
 
 The executable will be available in `target/release/`.
@@ -39,7 +39,7 @@ The executable will be available in `target/release/`.
 To run a ROM:
 
 ```bash
-cargo run --bin wgpu --release -- --load path/to/rom.ch8
+cargo run --bin chipper-wgpu --release -- --load path/to/rom.ch8
 ```
 
 ## Controls
@@ -90,8 +90,9 @@ For more info, run the binary with the `--help` argument.
 
 ## Project Structure
 
-- `chip8/`: Core emulator implementation
-- `wgpu/`: Graphics rendering backend
+- `chipper-core/`: Core emulator implementation
+- `chipper-wgpu/`: WGPU graphics rendering backend
+- `chipper-gpui/`: Experimental GPUI graphics rendering backend
 - `roms/`: Collection of CHIP-8 programs
 
 ## Screenshots

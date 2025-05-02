@@ -1,7 +1,7 @@
 use std::{path::PathBuf, sync::Arc, time};
 
 use anyhow::Context;
-use chip8::{Chip8, Key};
+use chipper_core::{Chip8, Key};
 use clap::{command, Parser};
 use pixels::{Pixels, SurfaceTexture};
 use rodio::{OutputStream, Sink};
@@ -31,8 +31,8 @@ impl AppConfig {
             window: Window::default_attributes()
                 .with_title("CHIP-8")
                 .with_inner_size(LogicalSize::new(
-                    (chip8::SCREEN_WIDTH as u32) * SCALE_FACTOR,
-                    (chip8::SCREEN_HEIGHT as u32) * SCALE_FACTOR,
+                    (chipper_core::SCREEN_WIDTH as u32) * SCALE_FACTOR,
+                    (chipper_core::SCREEN_HEIGHT as u32) * SCALE_FACTOR,
                 ))
                 .with_resizable(false),
             args,
@@ -86,8 +86,8 @@ impl App {
             SurfaceTexture::new(window_size.width, window_size.height, window.clone());
 
         let pixels = Pixels::new(
-            chip8::SCREEN_WIDTH as u32,
-            chip8::SCREEN_HEIGHT as u32,
+            chipper_core::SCREEN_WIDTH as u32,
+            chipper_core::SCREEN_HEIGHT as u32,
             surface_texture,
         )
         .context("create pixels instance")?;
@@ -173,8 +173,8 @@ impl App {
     pub fn render(state: &mut State) {
         let fb = state.chip8.fb();
         for (i, pixel) in state.pixels.frame_mut().chunks_exact_mut(4).enumerate() {
-            let x = i % chip8::SCREEN_WIDTH;
-            let y = i / chip8::SCREEN_WIDTH;
+            let x = i % chipper_core::SCREEN_WIDTH;
+            let y = i / chipper_core::SCREEN_WIDTH;
 
             let rgba = if fb[y][x] == 1 {
                 [255, 255, 255, 255]
